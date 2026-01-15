@@ -43,13 +43,16 @@ export function EventList() {
   const iconColor = useThemeColor({}, "text");
 
   const loadEvents = useCallback(
-    async (pageNum: number = 0, append: boolean = false) => {
+    async (pageNum: number = 0, append: boolean = false, isRefresh: boolean = false) => {
       const keyword = debouncedKeyword;
 
       try {
         if (pageNum === 0) {
           setLoading(true);
-          setIsSearching(true);
+          // Only set isSearching if not refreshing (to avoid showing loading in searchbar during pull-to-refresh)
+          if (!isRefresh) {
+            setIsSearching(true);
+          }
         } else {
           setLoadingMore(true);
         }
@@ -67,8 +70,8 @@ export function EventList() {
         // Update events in store (store handles deduplication)
         setEvents(newEvents, append);
 
-        // Add to search history if keyword exists
-        if (keyword.trim()) {
+        // Add to search history if keyword exists and not refreshing
+        if (keyword.trim() && !isRefresh && pageNum === 0) {
           addToSearchHistory(keyword);
         }
 
@@ -84,7 +87,7 @@ export function EventList() {
         setLoading(false);
         setLoadingMore(false);
         setRefreshing(false);
-        if (pageNum === 0) {
+        if (pageNum === 0 && !isRefresh) {
           setIsSearching(false);
         }
       }
@@ -113,7 +116,7 @@ export function EventList() {
     setRefreshing(true);
     setPage(0);
     setHasMore(true); // Reset hasMore when refreshing
-    loadEvents(0, false);
+    loadEvents(0, false, true); // Pass isRefresh=true to prevent searchbar loading
   }, [loadEvents, setRefreshing, setPage, setHasMore]);
 
   const handleLoadMore = useCallback(() => {

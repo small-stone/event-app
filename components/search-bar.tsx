@@ -30,6 +30,7 @@ export function SearchBar({
   const { searchHistory, setSearchKeyword, clearSearchHistory } =
     useEventStore();
   const [isFocused, setIsFocused] = React.useState(false);
+  const [hasUserTyped, setHasUserTyped] = React.useState(false);
 
   const borderColor = useThemeColor(
     { light: "#e0e0e0", dark: "#333333" },
@@ -45,11 +46,31 @@ export function SearchBar({
     "background"
   );
 
-  const showHistory = isFocused && searchHistory.length > 0 && !value;
+  // Only show history when focused, has history, no value, and user hasn't typed (or just focused)
+  const showHistory = isFocused && searchHistory.length > 0 && !value && !hasUserTyped;
 
   const handleHistoryItemPress = (keyword: string) => {
     setSearchKeyword(keyword);
     setIsFocused(false);
+    setHasUserTyped(false);
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    setHasUserTyped(false); // Reset when user focuses (clicks on input)
+  };
+
+  const handleChangeText = (text: string) => {
+    onChangeText(text);
+    setHasUserTyped(true); // Mark that user has typed
+  };
+
+  const handleClear = () => {
+    if (onClear) {
+      onClear();
+    }
+    // Don't reset hasUserTyped here - keep it true so history won't show after clearing
+    // History will only show when user clicks on input again (onFocus resets it)
   };
 
   return (
@@ -68,21 +89,21 @@ export function SearchBar({
           placeholder={placeholder}
           placeholderTextColor={textColor + "80"}
           value={value}
-          onChangeText={onChangeText}
-          onFocus={() => setIsFocused(true)}
+          onChangeText={handleChangeText}
+          onFocus={handleFocus}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="search"
         />
-        {loading ? (
+        {loading && value.length > 0 ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={textColor} />
           </View>
         ) : (
           value.length > 0 &&
           onClear && (
-            <Pressable onPress={onClear} style={styles.clearButton}>
+            <Pressable onPress={handleClear} style={styles.clearButton}>
               <ThemedText style={styles.clearButtonText}>✕</ThemedText>
             </Pressable>
           )
